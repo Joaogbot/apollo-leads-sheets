@@ -1,0 +1,14 @@
+.clasp.json
+.clasprc.json
+*.key
+.env
+credentials.json
+
+*.csv
+*.xlsx
+*.tsv
+exports/
+
+node_modules/
+.DS_Store
+Thumbs.db
