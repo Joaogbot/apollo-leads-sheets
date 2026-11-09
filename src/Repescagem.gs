@@ -136,20 +136,24 @@ function confirmarRepescagem() {
   resultadosSheet.clear();
   escreverCabecalhoResultados_(resultadosSheet);
 
+  iniciarExecucao_(modoSP ? "São Paulo" : "Brasil", "repescagem");
+
   const dePara = carregarDePara_();
   let total = 0;
 
   [[SHEET_NAO_ENDEMICO, "NE", false], [SHEET_ENDEMICO, "E", true]].forEach(par => {
     const aba = ss.getSheetByName(par[0]);
     if (!aba || aba.getLastRow() < 2) return;
+    const autores = autoresDaAba_(aba);
     const nomes = aba.getRange(2, 1, aba.getLastRow() - 1, 1).getValues()
       .flat().filter(v => v && v.toString().trim());
 
     nomes.forEach(nomeRaw => {
       const nome = nomeRaw.toString().trim();
       const escolha = escolhas[chaveRepescagem_(nome, par[1])];
+      const solicitante = autores[nome.toLowerCase()] || "";
       try {
-        processarEmpresaComEscolha_(nome, resultadosSheet, par[2], dePara, modoSP, escolha);
+        processarEmpresaComEscolha_(nome, resultadosSheet, par[2], dePara, modoSP, escolha, solicitante);
       } catch (err) {
         resultadosSheet.appendRow([nome, "", "", "", "", "", "", "", "", "", "", "ERRO: " + err.message, "", ""]);
       }
@@ -157,6 +161,8 @@ function confirmarRepescagem() {
       Utilities.sleep(400);
     });
   });
+
+  finalizarExecucao_();
 
   resultadosSheet.autoResizeColumns(1, TOTAL_COLUNAS);
   SpreadsheetApp.getUi().alert(`Repescagem confirmada: ${total} empresa(s) processada(s). Veja a aba Resultados.`);
@@ -212,18 +218,26 @@ function buscaCorrigida() {
   );
   if (resp !== ui.Button.YES) return;
 
+  iniciarExecucao_(modoSP ? "São Paulo" : "Brasil", "busca corrigida");
+  marcarEmpresasCorrigidas_(chaves.length);
+
+  const ssAtual = SpreadsheetApp.getActiveSpreadsheet();
+  const autoresE = autoresDaAba_(ssAtual.getSheetByName(SHEET_ENDEMICO));
+  const autoresNE = autoresDaAba_(ssAtual.getSheetByName(SHEET_NAO_ENDEMICO));
+
   let refeitas = 0;
   chaves.forEach(chave => {
     const partes = chave.split("||");
     const nomeBuscado = partes[0];
     const abaOrigem = partes[1];
     const isEndemico = abaOrigem === "e";
+    const solicitante = (isEndemico ? autoresE : autoresNE)[nomeBuscado.toLowerCase()] || "";
 
     removerLinhasDaEmpresa_(resultadosSheet, nomeBuscado);
     try {
       processarEmpresaComEscolha_(
         acharNomeOriginal_(nomeBuscado, abaOrigem) || nomeBuscado,
-        resultadosSheet, isEndemico, dePara, modoSP, escolhas[chave]
+        resultadosSheet, isEndemico, dePara, modoSP, escolhas[chave], solicitante
       );
       refeitas++;
     } catch (err) {
@@ -231,6 +245,8 @@ function buscaCorrigida() {
     }
     Utilities.sleep(400);
   });
+
+  finalizarExecucao_();
 
   ui.alert(`Busca corrigida: ${refeitas} empresa(s) refeita(s) na aba Resultados.`);
 }

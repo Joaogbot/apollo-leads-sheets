@@ -85,7 +85,7 @@ function analisarTermo_(termo, dePara) {
     saida.caminho = res.alvo.origem || "Apollo";
     saida.buscaPor = "domínio(s): " + doms.join(", ");
     const exato = (res.alvo.origem || "").indexOf("match exato") !== -1;
-    saida.situacao = exato ? "OK (match exato)" : "OK (empresa mais relevante — confira na Repescagem)";
+    saida.situacao = exato ? "OK (match exato)" : "OK (empresa mais relevante, confira na Repescagem)";
   } else if (res.alvo.nome) {
     saida.caminho = res.alvo.origem || "Busca por nome";
     saida.buscaPor = "nome: " + res.alvo.nome;

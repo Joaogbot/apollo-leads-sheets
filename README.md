@@ -8,7 +8,7 @@ A premissa que guiou todo o projeto é que quem preenche a planilha no dia a dia
 
 ## O que faz
 
-A partir de uma lista de empresas numa aba do Google Sheets, o script resolve a empresa real por trás do nome digitado, busca contatos nos cargos relevantes (eventos, marketing e liderança), descarta quem não trabalha mais lá, escolhe até cinco contatos com e-mail por empresa, enriquece com e-mail, telefone e LinkedIn, classifica se a empresa é do setor de games e, se você quiser, dispara e-mails em massa com variáveis preenchidas. Tudo acontece dentro do Sheets, por um menu próprio chamado "Apollo Leads".
+A partir de uma lista de empresas numa aba do Google Sheets, o script resolve a empresa real por trás do nome digitado, busca contatos nos cargos relevantes (eventos, marketing e liderança), descarta quem não trabalha mais lá, escolhe até cinco contatos com e-mail por empresa, enriquece com e-mail, telefone e LinkedIn, classifica se a empresa é do setor de games e, se você quiser, dispara e-mails em massa com variáveis preenchidas. Tudo acontece dentro do Sheets, por um menu próprio chamado "Apollo Leads". Cada busca fica registrada num histórico acumulado, que alimenta uma análise em Python na pasta `analise`. O sistema também guarda quem pediu cada empresa e reaproveita buscas recentes para não gastar crédito à toa.
 
 ## Decisões técnicas que valem explicar
 
@@ -93,6 +93,7 @@ Em Apps Script todos os arquivos `.gs` de um projeto dividem o mesmo escopo glob
 | `Repescagem.gs` | Revisão humana da empresa escolhida e busca corrigida |
 | `Diagnostico.gs` | Conferência de empresas sem gastar crédito |
 | `Email.gs` | Disparo de e-mail em massa com variáveis |
+| `Historico.gs` | Registro persistente das abas Histórico e Execuções |
 | `appsscript.json` | Manifesto: fuso, runtime V8 e escopos de OAuth |
 
 ## Abas da planilha
@@ -105,8 +106,20 @@ Em Apps Script todos os arquivos `.gs` de um projeto dividem o mesmo escopo glob
 | `Resultados` | Saída com os contatos: e-mail, telefone, cargo e LinkedIn |
 | `Repescagem` | Candidatas de cada nome, para revisar a escolha |
 | `Diagnóstico` | Como cada empresa foi interpretada, sem gastar crédito |
+| `Histórico` | Todos os contatos de todas as buscas, acumulado |
+| `Execuções` | Uma linha por busca, com custo, créditos e correções |
 
 Dá para preencher só uma das abas de entrada; a outra pode ficar vazia.
+
+## Análise dos dados
+
+A pasta `analise` traz um projeto em Python com pandas que lê o histórico exportado e gera tabelas e gráficos de cobertura por segmento, distribuição por país, qualidade por caminho de resolução, email corporativo contra pessoal, contagem de cargos por senioridade, empresa procurada contra outra do grupo e eficiência de crédito. O passo a passo está no [README da pasta](analise/README.md). A base real não vai para o repositório; a análise pública roda sobre um conjunto de dados sintético com a mesma estrutura.
+
+## Autoria e reaproveitamento
+
+Como a planilha é compartilhada com o time, cada empresa digitada nas abas de entrada é carimbada com quem a digitou e quando, por um gatilho de edição. Esse solicitante vai para o histórico e vira uma dimensão de análise, mostrando quem pede o quê. A captura do email depende de todos estarem no mesmo Google Workspace; fora disso o Google oculta o email por privacidade e o campo fica em branco.
+
+Antes de gastar crédito, a busca verifica se a mesma empresa já foi procurada há pouco. Se existe um resultado dos últimos 90 dias no histórico, os contatos são reaproveitados em vez de consultados de novo no Apollo, e o crédito que seria gasto entra na análise como economia. A janela de 90 dias evita entregar dado velho.
 
 ## Instalação
 

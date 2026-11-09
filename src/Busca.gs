@@ -30,9 +30,14 @@ function executarBusca_(modoSP, rotulo) {
   resultadosSheet.clear();
   escreverCabecalhoResultados_(resultadosSheet);
 
+  iniciarExecucao_(rotulo, "busca");
+  carregarIndiceHistorico_();
+
   let total = 0;
   if (abaNaoEndemico) total += processarAba_(abaNaoEndemico, resultadosSheet, false, dePara, modoSP, abaRep, "NE");
   if (abaEndemico) total += processarAba_(abaEndemico, resultadosSheet, true, dePara, modoSP, abaRep, "E");
+
+  finalizarExecucao_();
 
   if (total === 0) {
     SpreadsheetApp.getUi().alert("Nenhuma empresa encontrada nas abas de entrada (coluna A, a partir da linha 2).");
@@ -61,6 +66,7 @@ function escreverCabecalhoResultados_(sheet) {
 function processarAba_(abaEmpresas, resultadosSheet, isEndemico, dePara, modoSP, abaRep, rotuloAba) {
   if (abaEmpresas.getLastRow() < 2) return 0;
 
+  const autores = autoresDaAba_(abaEmpresas);
   const empresas = abaEmpresas
     .getRange(2, 1, abaEmpresas.getLastRow() - 1, 1)
     .getValues()
@@ -68,18 +74,22 @@ function processarAba_(abaEmpresas, resultadosSheet, isEndemico, dePara, modoSP,
     .filter(v => v && v.toString().trim() !== "");
 
   empresas.forEach(empresa => {
+    const nome = empresa.toString().trim();
+    const solicitante = autores[nome.toLowerCase()] || "";
     try {
-      processarEmpresa_(empresa.toString().trim(), resultadosSheet, isEndemico, dePara, modoSP, abaRep, rotuloAba);
+      if (!reaproveitarDoHistorico_(nome, rotuloAba, resultadosSheet, solicitante)) {
+        processarEmpresa_(nome, resultadosSheet, isEndemico, dePara, modoSP, abaRep, rotuloAba, solicitante);
+        Utilities.sleep(400);
+      }
     } catch (err) {
-      resultadosSheet.appendRow([empresa, "", "", "", "", "", "", "", "", "", "", "ERRO: " + err.message, "", ""]);
+      resultadosSheet.appendRow([nome, "", "", "", "", "", "", "", "", "", "", "ERRO: " + err.message, "", ""]);
     }
-    Utilities.sleep(400);
   });
 
   return empresas.length;
 }
 
-function processarEmpresa_(empresa, resultadosSheet, isEndemico, dePara, modoSP, abaRep, rotuloAba) {
+function processarEmpresa_(empresa, resultadosSheet, isEndemico, dePara, modoSP, abaRep, rotuloAba, solicitante) {
   const alvoInicial = resolverEmpresa_(empresa, dePara);
   let escolha = null;
 
@@ -112,10 +122,12 @@ function processarEmpresa_(empresa, resultadosSheet, isEndemico, dePara, modoSP,
 
   }
 
-  processarEmpresaComEscolha_(empresa, resultadosSheet, isEndemico, dePara, modoSP, escolha);
+  processarEmpresaComEscolha_(empresa, resultadosSheet, isEndemico, dePara, modoSP, escolha, solicitante);
 }
 
-function processarEmpresaComEscolha_(empresa, resultadosSheet, isEndemico, dePara, modoSP, escolha) {
+function processarEmpresaComEscolha_(empresa, resultadosSheet, isEndemico, dePara, modoSP, escolha, solicitante) {
+  marcarEmpresaProcessada_();
+  const segmento = isEndemico ? "E" : "NE";
   let alvo = resolverEmpresa_(empresa, dePara);
 
   if (escolha && (escolha.dominios || escolha.dominio)) {
@@ -129,6 +141,7 @@ function processarEmpresaComEscolha_(empresa, resultadosSheet, isEndemico, dePar
     };
   }
 
+  const dominioAlvo = alvo.dominio || (alvo.dominios && alvo.dominios[0]) || "";
   const selecionados = buscarPessoasPorHierarquia_(alvo, modoSP);
 
   let origemFinal = alvo.origem;
@@ -137,16 +150,18 @@ function processarEmpresaComEscolha_(empresa, resultadosSheet, isEndemico, dePar
   }
 
   if (selecionados.length === 0) {
-    resultadosSheet.appendRow([
+    const linha = [
       empresa, "", origemFinal, "", "", "", "", "", "", "", "",
       "Nenhum contato encontrado nos cargos-alvo", "", ""
-    ]);
+    ];
+    resultadosSheet.appendRow(linha);
+    registrarContatoHistorico_(linha, segmento, solicitante, dominioAlvo);
     return;
   }
 
   selecionados.forEach(p => {
     const org = p.organization || {};
-    resultadosSheet.appendRow([
+    const linha = [
       empresa,
       org.name || p.organization_name || "(não identificada)",
       origemFinal,
@@ -161,6 +176,8 @@ function processarEmpresaComEscolha_(empresa, resultadosSheet, isEndemico, dePar
       "OK",
       "",
       p.id || ""
-    ]);
+    ];
+    resultadosSheet.appendRow(linha);
+    registrarContatoHistorico_(linha, segmento, solicitante, dominioAlvo);
   });
 }

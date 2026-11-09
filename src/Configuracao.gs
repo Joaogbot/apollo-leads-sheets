@@ -30,8 +30,8 @@ function instalarPlanilha() {
     let aba = ss.getSheetByName(par[0]);
     if (!aba) {
       aba = ss.insertSheet(par[0]);
-      aba.appendRow(["Empresa (nome ou domínio) — " + par[1]]);
-      aba.getRange(1, 1, 1, 1).setFontWeight("bold");
+      aba.appendRow(["Empresa (nome ou domínio): " + par[1], "Solicitante", "Preenchido em"]);
+      aba.getRange(1, 1, 1, 3).setFontWeight("bold");
       aba.setFrozenRows(1);
       aba.setColumnWidth(1, 340);
       criadas.push(par[0]);

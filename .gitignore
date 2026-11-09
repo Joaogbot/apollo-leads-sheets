@@ -12,3 +12,9 @@ exports/
 node_modules/
 .DS_Store
 Thumbs.db
+
+!analise/dados_exemplo/*.csv
+analise/saida/
+
+__pycache__/
+*.pyc

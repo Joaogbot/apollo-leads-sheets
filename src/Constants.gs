@@ -4,6 +4,22 @@ const SHEET_RESULTADOS = "Resultados";
 const SHEET_DEPARA = "De-Para";
 const SHEET_DIAGNOSTICO = "Diagnóstico";
 const SHEET_REPESCAGEM = "Repescagem";
+const SHEET_HISTORICO = "Histórico";
+const SHEET_EXECUCOES = "Execuções";
+
+const CABECALHO_HISTORICO = [
+  "Busca ID", "Data/hora", "Modo", "Segmento", "Solicitante", "Domínio",
+  "Empresa (busca)", "Empresa real (Apollo)", "Como foi resolvida", "Nome",
+  "Cargo", "Nível do cargo", "País", "Email", "Telefone", "LinkedIn",
+  "Relacionado a Games", "Status", "Status Envio", "ID Apollo"
+];
+const CABECALHO_EXECUCOES = [
+  "Busca ID", "Data/hora", "Modo", "Origem", "Empresas processadas",
+  "Contatos enriquecidos", "Contatos retornados", "Telefones solicitados",
+  "Créditos estimados", "Empresas corrigidas", "Créditos economizados"
+];
+
+const DIAS_REAPROVEITAMENTO = 90;
 const MAX_CONTATOS_POR_EMPRESA = 5;
 
 const HIERARQUIA_CARGOS = [

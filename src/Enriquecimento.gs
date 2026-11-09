@@ -27,6 +27,8 @@ function enriquecerLote_(pessoas) {
     throw new Error(`Erro no enriquecimento (HTTP ${code}): ${resp.getContentText().substring(0, 200)}`);
   }
 
+  contarEnriquecimento_(pessoas.length, querCelular);
+
   const data = JSON.parse(resp.getContentText());
   const matches = data.matches || [];
 
