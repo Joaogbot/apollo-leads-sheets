@@ -151,7 +151,3 @@ As chaves de API ficam no `PropertiesService` do Apps Script, nunca no código. 
 ## O que ainda não resolve
 
 A cobertura do Wikidata é boa para marcas globais e irregular para empresas brasileiras de porte médio; a aba De-Para existe justamente para tapar esse buraco. O Apps Script corta a execução em seis minutos, então listas muito grandes, de umas cinquenta empresas para cima, podem precisar rodar em lotes. A classificação de setor usa palavra-chave sobre o dado de indústria do Apollo: é rápida e de graça, mas menos precisa do que seria com um modelo de linguagem.
-
-## Licença
-
-MIT. Veja o arquivo [LICENSE](LICENSE).
