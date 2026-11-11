@@ -63,6 +63,7 @@ function enviarEmailsEmMassa() {
   if (confirmacao !== ui.Button.YES) return;
 
   let enviados = 0, pulados = 0, erros = 0;
+  const enviadosPorId = {};
 
   for (let i = 0; i < dados.length; i++) {
     const linha = i + 2;
@@ -77,7 +78,7 @@ function enviarEmailsEmMassa() {
       continue;
     }
 
-    if (statusEnvio === "Enviado") {
+    if (pesoStatusEnvio_(statusEnvio) > 0) {
       pulados++;
       continue;
     }
@@ -97,6 +98,8 @@ function enviarEmailsEmMassa() {
     try {
       MailApp.sendEmail(email, assunto, corpo);
       sheet.getRange(linha, COL.STATUS_ENVIO).setValue("Enviado");
+      const idApollo = (dados[i][COL.ID_APOLLO - 1] || "").toString().trim();
+      if (idApollo) enviadosPorId[idApollo] = "Enviado";
       enviados++;
     } catch (err) {
       sheet.getRange(linha, COL.STATUS_ENVIO).setValue("Erro: " + err.message);
@@ -106,5 +109,6 @@ function enviarEmailsEmMassa() {
     Utilities.sleep(1000);
   }
 
+  atualizarStatusEnvioHistorico_(enviadosPorId);
   ui.alert(`Concluído.\nEnviados: ${enviados}\nPulados: ${pulados}\nErros: ${erros}`);
 }

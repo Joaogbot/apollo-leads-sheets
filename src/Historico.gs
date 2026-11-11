@@ -137,3 +137,38 @@ function reaproveitarDoHistorico_(empresa, segmento, resultadosSheet, solicitant
   });
   return true;
 }
+
+const ORDEM_STATUS_ENVIO = { "": 0, "Sem email válido": 0, "Cota diária esgotada": 0, "Enviado": 1, "Respondeu": 2, "Reunião marcada": 3, "Fechou patrocínio": 4 };
+
+function pesoStatusEnvio_(status) {
+  const s = (status || "").toString();
+  if (s.indexOf("Erro") === 0) return 0;
+  return ORDEM_STATUS_ENVIO[s] !== undefined ? ORDEM_STATUS_ENVIO[s] : 0;
+}
+
+function atualizarStatusEnvioHistorico_(atualizacoes) {
+  const ids = Object.keys(atualizacoes || {});
+  if (!ids.length) return 0;
+  const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_HISTORICO);
+  if (!aba || aba.getLastRow() < 2) return 0;
+
+  const colStatus = CABECALHO_HISTORICO.indexOf("Status Envio") + 1;
+  const colId = CABECALHO_HISTORICO.indexOf("ID Apollo") + 1;
+  const total = aba.getLastRow() - 1;
+  const idsHist = aba.getRange(2, colId, total, 1).getValues();
+  const status = aba.getRange(2, colStatus, total, 1).getValues();
+
+  let alteradas = 0;
+  for (let i = 0; i < total; i++) {
+    const id = (idsHist[i][0] || "").toString().trim();
+    if (!id || !(id in atualizacoes)) continue;
+    const novo = atualizacoes[id];
+    const atual = status[i][0];
+    if (novo === atual) continue;
+    if (novo === "Enviado" && pesoStatusEnvio_(atual) > 1) continue;
+    status[i][0] = novo;
+    alteradas++;
+  }
+  if (alteradas) aba.getRange(2, colStatus, total, 1).setValues(status);
+  return alteradas;
+}

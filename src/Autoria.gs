@@ -1,8 +1,12 @@
 function onEdit(e) {
   if (!e || !e.range) return;
+  const nome = e.range.getSheet().getName();
+  if (nome === SHEET_ENDEMICO || nome === SHEET_NAO_ENDEMICO) registrarAutoria_(e);
+  if (nome === SHEET_RESULTADOS) sincronizarStatusEnvio_(e);
+}
+
+function registrarAutoria_(e) {
   const aba = e.range.getSheet();
-  const nome = aba.getName();
-  if (nome !== SHEET_ENDEMICO && nome !== SHEET_NAO_ENDEMICO) return;
   if (e.range.getColumn() !== 1) return;
 
   const email = emailDoEditor_();
@@ -18,6 +22,25 @@ function onEdit(e) {
     aba.getRange(linha, 2).setValue(email);
     aba.getRange(linha, 3).setValue(quando);
   }
+}
+
+function sincronizarStatusEnvio_(e) {
+  const inicio = e.range.getColumn();
+  const fim = inicio + e.range.getNumColumns() - 1;
+  if (COL.STATUS_ENVIO < inicio || COL.STATUS_ENVIO > fim) return;
+
+  const aba = e.range.getSheet();
+  const primeira = Math.max(e.range.getRow(), 2);
+  const ultima = e.range.getRow() + e.range.getNumRows() - 1;
+  if (ultima < primeira) return;
+
+  const dados = aba.getRange(primeira, 1, ultima - primeira + 1, TOTAL_COLUNAS).getValues();
+  const atualizacoes = {};
+  dados.forEach(linha => {
+    const id = (linha[COL.ID_APOLLO - 1] || "").toString().trim();
+    if (id) atualizacoes[id] = (linha[COL.STATUS_ENVIO - 1] || "").toString().trim();
+  });
+  atualizarStatusEnvioHistorico_(atualizacoes);
 }
 
 function emailDoEditor_() {

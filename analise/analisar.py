@@ -77,6 +77,119 @@ def classificar_senioridade(cargo):
     return "Outro"
 
 
+ETAPAS_ENVIO = {"Enviado": 1, "Respondeu": 2, "Reunião marcada": 3, "Fechou patrocínio": 4}
+ETAPAS_FUNIL = [
+    ("pedida", "Empresas pedidas"),
+    ("contato", "Com contato encontrado"),
+    ("email", "Com contato com email"),
+    ("enviado", "Contactadas por email"),
+    ("respondeu", "Responderam"),
+    ("reuniao", "Reunião marcada"),
+    ("fechou", "Fecharam patrocínio"),
+]
+
+
+def percentual(parte, todo):
+    parte = parte.astype(float)
+    todo = todo.astype(float)
+    return (parte / todo.where(todo > 0) * 100).round(1).fillna(0.0)
+
+
+def peso_envio(valor):
+    if pd.isna(valor):
+        return 0
+    return ETAPAS_ENVIO.get(str(valor).strip(), 0)
+
+
+def marcar_etapas(hist):
+    h = hist.copy()
+    h["Status Envio"] = h["Status Envio"] if "Status Envio" in h.columns else ""
+    tem_contato = h["Nome"].str.strip() != ""
+    peso = h["Status Envio"].map(peso_envio)
+    h["pedida"] = True
+    h["contato"] = tem_contato
+    h["email"] = tem_contato & h["Email"].map(tem_email)
+    h["enviado"] = tem_contato & (peso >= 1)
+    h["respondeu"] = tem_contato & (peso >= 2)
+    h["reuniao"] = tem_contato & (peso >= 3)
+    h["fechou"] = tem_contato & (peso >= 4)
+    return h
+
+
+def empresas_por_etapa(hist):
+    h = marcar_etapas(hist)
+    h["Empresa chave"] = h["Empresa (busca)"].map(normalizar)
+    h["Solicitante"] = h.get("Solicitante", pd.Series("", index=h.index)).fillna("").replace("", "(não informado)")
+    flags = [chave for chave, _ in ETAPAS_FUNIL]
+    agregado = {chave: "any" for chave in flags}
+    agregado.update({"Segmento": "first", "Resolução": "first", "Solicitante": "first"})
+    return h.groupby("Empresa chave").agg(agregado)
+
+
+def tabela_funil(empresas):
+    linhas = []
+    anterior = None
+    total = int(empresas["pedida"].sum())
+    for chave, rotulo in ETAPAS_FUNIL:
+        n = int(empresas[chave].sum())
+        linhas.append({
+            "Etapa": rotulo,
+            "Empresas": n,
+            "% do total": round(n / total * 100, 1) if total else 0,
+            "% da etapa anterior": round(n / anterior * 100, 1) if anterior else 100.0,
+        })
+        anterior = n
+    return pd.DataFrame(linhas).set_index("Etapa")
+
+
+def funil_por(empresas, coluna):
+    chaves = [chave for chave, _ in ETAPAS_FUNIL]
+    rotulos = dict(ETAPAS_FUNIL)
+    tabela = empresas.groupby(coluna)[chaves].sum().astype(int).rename(columns=rotulos)
+    tabela["% contactadas"] = percentual(tabela["Contactadas por email"], tabela["Empresas pedidas"])
+    tabela["% resposta sobre contactadas"] = percentual(tabela["Responderam"], tabela["Contactadas por email"])
+    return tabela.sort_values("Empresas pedidas", ascending=False)
+
+
+def conversao_por_cargo(hist):
+    h = marcar_etapas(hist)
+    h = h[h["contato"]].copy()
+    h["Pessoa"] = h["ID Apollo"].fillna("").astype(str).str.strip()
+    sem_id = h["Pessoa"] == ""
+    h.loc[sem_id, "Pessoa"] = h.loc[sem_id, "Nome"] + "|" + h.loc[sem_id, "Empresa (busca)"].astype(str)
+    h["Nível do cargo"] = h["Nível do cargo"].fillna("").replace("", "(sem nível)")
+    pessoas = h.groupby("Pessoa").agg({"Nível do cargo": "first", "email": "any", "enviado": "any", "respondeu": "any", "reuniao": "any"})
+    tabela = pessoas.groupby("Nível do cargo").agg(
+        Contatos=("email", "size"),
+        **{"Com email": ("email", "sum"), "Enviados": ("enviado", "sum"),
+           "Responderam": ("respondeu", "sum"), "Reuniões": ("reuniao", "sum")}
+    ).astype(int)
+    tabela["Taxa de resposta (%)"] = percentual(tabela["Responderam"], tabela["Enviados"])
+    return tabela
+
+
+def salvar_funil(tabela, titulo, caminho):
+    valores = tabela["Empresas"].tolist()
+    rotulos = tabela.index.tolist()
+    maior = max(valores) if valores and max(valores) else 1
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for i, (rotulo, v) in enumerate(zip(rotulos, valores)):
+        y = len(valores) - 1 - i
+        ax.barh(y, v, left=(maior - v) / 2, color="#2f6f8f", height=0.75)
+        pct = tabela["% do total"].iloc[i]
+        ax.text(maior / 2, y, f"{v}  ({pct:.0f}%)", ha="center", va="center", color="white" if v > maior * 0.1 else "#222", fontsize=9)
+    ax.set_yticks(range(len(valores)))
+    ax.set_yticklabels(rotulos[::-1])
+    ax.set_xticks([])
+    ax.tick_params(axis="y", length=0)
+    for lado in ("top", "right", "bottom", "left"):
+        ax.spines[lado].set_visible(False)
+    ax.set_title(titulo)
+    fig.tight_layout()
+    fig.savefig(caminho, dpi=120)
+    plt.close(fig)
+
+
 def origem_empresa(linha):
     real = normalizar(linha["Empresa real (Apollo)"])
     busca = normalizar(linha["Empresa (busca)"])
@@ -169,6 +282,13 @@ def main():
         }).sort_values("Contatos", ascending=False)
         tabelas["pedidos_por_solicitante"] = pedidos
 
+    empresas = empresas_por_etapa(hist)
+    tabelas["funil"] = tabela_funil(empresas)
+    tabelas["funil_por_segmento"] = funil_por(empresas, "Segmento")
+    tabelas["funil_por_resolucao"] = funil_por(empresas, "Resolução")
+    tabelas["funil_por_solicitante"] = funil_por(empresas, "Solicitante")
+    tabelas["conversao_por_nivel_cargo"] = conversao_por_cargo(hist)
+
     cred_por_origem = execucoes.groupby("Origem").agg(
         Execuções=("Busca ID", "count"),
         Empresas=("Empresas processadas", "sum"),
@@ -222,7 +342,12 @@ def main():
     salvar_pizza(origem, "Empresa procurada x outra do grupo", os.path.join(dir_graf, "origem.png"))
     salvar_barras(cred_por_origem["Créditos"], "Créditos estimados por origem da busca", os.path.join(dir_graf, "creditos.png"))
 
+    salvar_funil(tabelas["funil"], "Funil de prospecção (empresas)", os.path.join(dir_graf, "funil.png"))
+    salvar_barras(tabelas["conversao_por_nivel_cargo"]["Taxa de resposta (%)"], "Taxa de resposta por nível do cargo (%)", os.path.join(dir_graf, "resposta_cargo.png"), horizontal=True)
+
     graficos = {
+        "funil": "funil.png",
+        "conversao_por_nivel_cargo": "resposta_cargo.png",
         "cobertura_por_segmento": "cobertura_segmento.png",
         "distribuicao_por_pais": "paises.png",
         "qualidade_por_resolucao": "resolucao.png",
@@ -243,6 +368,8 @@ def main():
     print("Gráficos em:", dir_graf)
     print("Relatório:", os.path.join(args.saida, "relatorio.html"))
     print()
+    print(tabelas["funil"].to_string())
+    print()
     print(eficiencia.to_string(index=False))
 
 
@@ -258,6 +385,11 @@ def escrever_relatorio(caminho, tabelas, graficos):
         "<p>Gerado a partir do histórico de buscas e do registro de execuções.</p>",
     ]
     titulos = {
+        "funil": "Funil de prospecção",
+        "funil_por_segmento": "Funil por segmento",
+        "funil_por_resolucao": "Funil por caminho de resolução",
+        "funil_por_solicitante": "Funil por solicitante",
+        "conversao_por_nivel_cargo": "Conversão por nível do cargo",
         "cobertura_por_segmento": "Cobertura por segmento",
         "distribuicao_por_pais": "Distribuição por país",
         "qualidade_por_resolucao": "Qualidade por caminho de resolução",

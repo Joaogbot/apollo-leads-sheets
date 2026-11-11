@@ -9,6 +9,8 @@ A planilha acumula dois registros a cada busca:
 - a aba **Histórico**, com uma linha por contato devolvido, carimbada com a busca, a data, o modo, o segmento, o solicitante (quem digitou a empresa) e o domínio resolvido;
 - a aba **Execuções**, com uma linha por busca, trazendo empresas processadas, contatos enriquecidos, telefones solicitados, crédito estimado e empresas corrigidas na repescagem.
 
+As etapas depois do envio vêm da coluna Status Envio. O disparo em massa marca "Enviado" sozinho; quando alguém responde, o time escolhe na lista da aba Resultados "Respondeu", "Reunião marcada" ou "Fechou patrocínio", e a mudança é copiada para o Histórico na hora.
+
 Para analisar os dados reais, exporte cada uma dessas abas como CSV (no Sheets, Arquivo, Fazer download, Valores separados por vírgula) e aponte o script para esses arquivos.
 
 A base real tem email e telefone de pessoas, então ela não entra no repositório. O que está versionado aqui é um conjunto de dados sintético, gerado por `gerar_exemplo.py`, com a mesma estrutura da base real. Assim dá para rodar a análise e ver o resultado sem expor ninguém.
@@ -44,4 +46,6 @@ Tudo vai para a pasta `saida`:
 - **Cargos por senioridade**: quantos CEO, CMO, diretoria, gerência e assim por diante.
 - **Empresa procurada x outra do grupo**: se o contato veio da empresa digitada ou de outra do mesmo conglomerado.
 - **Pedidos por solicitante**: quantos contatos e quantas empresas cada pessoa do time pediu.
+- **Funil de prospecção**: quantas empresas passam por cada etapa, de pedida a contato encontrado, contato com email, contactada, respondeu, reunião marcada e patrocínio fechado, com a taxa de passagem entre uma etapa e a seguinte. O mesmo funil sai quebrado por segmento, por caminho de resolução e por solicitante, o que mostra onde se perde mais gente e qual parte do processo vale melhorar primeiro.
+- **Conversão por nível do cargo**: para cada nível da hierarquia (eventos, marca, liderança de marketing, liderança geral), quantos contatos foram enviados e qual a taxa de resposta. Serve para checar se a ordem de prioridade dos cargos faz sentido na prática.
 - **Eficiência de crédito**: crédito estimado no total, por contato e por contato com email, o excedente gasto nas buscas corrigidas pela repescagem, e o crédito economizado quando uma empresa buscada há pouco é reaproveitada do histórico em vez de consultada de novo.

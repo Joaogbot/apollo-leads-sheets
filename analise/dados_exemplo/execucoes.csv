@@ -1,6 +1,6 @@
 Busca ID,Data/hora,Modo,Origem,Empresas processadas,Contatos enriquecidos,Contatos retornados,Telefones solicitados,Créditos estimados,Empresas corrigidas,Créditos economizados
-B20261020-090000,2026-10-20 09:00:00,Brasil,busca,11,42,27,0,42,0,0
-B20261021-090700,2026-10-21 09:07:00,Brasil,busca,6,27,11,0,27,0,12
-B20261022-091400,2026-10-22 09:14:00,São Paulo,busca,5,21,15,5,61,0,0
-B20261023-092100,2026-10-23 09:21:00,Brasil,repescagem,4,23,10,0,23,0,0
-B20261024-092800,2026-10-24 09:28:00,Brasil,busca corrigida,2,15,10,0,15,2,0
+B20261020-090000,2026-10-20 09:00:00,Brasil,busca,14,61,45,0,61,0,0
+B20261021-090700,2026-10-21 09:07:00,Brasil,busca,6,24,16,0,24,0,12
+B20261022-091400,2026-10-22 09:14:00,São Paulo,busca,6,25,16,2,41,0,0
+B20261023-092100,2026-10-23 09:21:00,Brasil,repescagem,4,13,9,0,13,0,0
+B20261024-092800,2026-10-24 09:28:00,Brasil,busca corrigida,2,11,4,0,11,2,0

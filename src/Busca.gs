@@ -61,6 +61,11 @@ function escreverCabecalhoResultados_(sheet) {
   ]);
   sheet.getRange(1, 1, 1, TOTAL_COLUNAS).setFontWeight("bold");
   sheet.setFrozenRows(1);
+  const regra = SpreadsheetApp.newDataValidation()
+    .requireValueInList(Object.keys(ORDEM_STATUS_ENVIO).filter(s => s), true)
+    .setAllowInvalid(true)
+    .build();
+  sheet.getRange(2, COL.STATUS_ENVIO, sheet.getMaxRows() - 1, 1).setDataValidation(regra);
 }
 
 function processarAba_(abaEmpresas, resultadosSheet, isEndemico, dePara, modoSP, abaRep, rotuloAba) {
